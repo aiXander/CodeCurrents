@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codecurrents"
+version = "0.1.0"
+description = "Summarize code changes from GitHub repos using LLM map-reduce"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.40.0",
+    "tiktoken>=0.7.0",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.0.0"]
+gemini = ["google-genai>=1.0.0"]
+all = ["openai>=1.0.0", "google-genai>=1.0.0"]
+
+[tool.setuptools.packages.find]
+include = ["codecurrents*"]
+
+[project.scripts]
+codecurrents = "codecurrents.cli:main"

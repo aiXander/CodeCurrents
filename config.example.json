@@ -1,0 +1,19 @@
+{
+  "branches": ["main"],
+  "model": "gemini-2.5-flash",
+  "tokens_per_chunk": 50000,
+  "max_commits": 500,
+  "state_dir": "./state",
+  "clone_dir": "/tmp/codecurrents_repos",
+  "ignore_patterns": [
+    "package-lock.json",
+    "yarn.lock",
+    "*.svg",
+    "*.min.js",
+    "*.min.css",
+    "*.map",
+    "*/migrations/*"
+  ],
+  "map_prompt": "You are a senior software architect analyzing code changes...",
+  "reduce_prompt": "Synthesize these batch summaries into a coherent narrative..."
+}
