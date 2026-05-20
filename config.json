@@ -1,9 +1,10 @@
 {
-  "branches": ["staging"],
-  "since": "3  days ago",
-  "model": "claude-haiku-4-5",
+  "branches": ["main"],
+  "since": "21 days ago",
+  "model": "google/gemini-3.1-flash-lite-preview",
   "tokens_per_chunk": 50000,
   "max_commits": 300,
+  "max_concurrent_requests": 8,
   "state_dir": "./state",
   "clone_dir": "/tmp/codecurrents_repos",
   "ignore_patterns": [
@@ -37,6 +38,6 @@
     "**/__snapshots__/**",
     "*.ipynb"
   ],
-  "map_prompt": "You are a senior software architect analyzing a batch of code changes from Eden (eden2), an AI-native creative platform built on Python/FastAPI with a React/Next.js frontend.\n\nGiven the following git commits and their diffs, produce a concise summary focusing on:\n- Significant architectural decisions, new abstractions, or design pattern shifts\n- New features, capabilities, or integrations being built\n- Major refactors, API changes, or data model evolution\n- Changes to infrastructure, deployment, or DevOps patterns\n- Shifts in how AI models, agents, or workflows are orchestrated\n\nDo NOT focus on:\n- Individual bug fixes, typo corrections, or minor UI tweaks\n- Test-only changes (unless they reveal architectural intent)\n- Formatting, linting, or style-only changes\n- Commented-out code or TODO additions\n\nIf the changes are purely maintenance, bug fixes, or minor tweaks with no architectural significance, output exactly: NO_MAJOR_CHANGES\n\nBe specific about file paths and module names when describing changes. Keep your summary to 300-500 words.",
-  "reduce_prompt": "You are a senior software architect writing a development digest for the Eden (eden2) platform — an AI-native creative platform for generative art and agent-driven workflows.\n\nBelow are summaries of different batches of recent code changes. Synthesize them into a single, coherent narrative that captures:\n\n1. The overall direction the codebase is heading\n2. Major new features or capabilities that emerged\n3. Significant architectural decisions or design patterns being adopted\n4. Notable shifts in AI/ML integration, agent orchestration, or workflow design\n5. Infrastructure or deployment changes worth noting\n\nWrite in a clear, newsletter-style tone suitable for developers who follow this project. Avoid repeating the same point from multiple summaries — merge and deduplicate. Use specific module/file names where helpful.\n\nIf ALL summaries indicate NO_MAJOR_CHANGES, output exactly: NO_MAJOR_CHANGES\n\nOtherwise, ignore any NO_MAJOR_CHANGES summaries and focus on the substantive ones.\n\nTarget length: 400-800 words."
+  "map_prompt": "You are a senior software architect analyzing a large batch of code changes from GitHub.\n\nGiven the following git commits and their diffs, produce a concise summary focusing on:\n- Significant architectural decisions, new abstractions, or design pattern shifts\n- New features, capabilities, or integrations being built\n- Major refactors, API changes, or data model evolution\n- Changes to infrastructure, deployment, or DevOps patterns\n- Shifts in how AI models, agents, or workflows are orchestrated\n\nDo NOT focus on:\n- Individual bug fixes, typo corrections, or minor UI tweaks\n- Test-only changes (unless they reveal architectural intent)\n- Formatting, linting, or style-only changes\n- Commented-out code or TODO additions\n\nIf the changes are purely maintenance, bug fixes, or minor tweaks with no architectural significance, output exactly: NO_MAJOR_CHANGES\n\nBe specific about file paths and module names when describing changes. Keep your summary to 300-500 words.",
+  "reduce_prompt": "You are a senior software architect writing a development digest for a GitHub codebase.\n\nBelow are summaries of different batches of recent code changes. Synthesize them into a single, coherent narrative that captures:\n\n1. The overall direction the codebase is heading\n2. Major new features or capabilities that emerged\n3. Significant architectural decisions or design patterns being adopted\n4. Notable shifts in AI/ML integration, agent orchestration, or workflow design\n5. Infrastructure or deployment changes worth noting\n\nWrite in a clear, newsletter-style tone suitable for developers who follow this project. Avoid repeating the same point from multiple summaries — merge and deduplicate. Use specific module/file names where helpful.\n\nIf ALL summaries indicate NO_MAJOR_CHANGES, output exactly: NO_MAJOR_CHANGES\n\nOtherwise, ignore any NO_MAJOR_CHANGES summaries and focus on the substantive ones.\n\nTarget length: 400-800 words."
 }

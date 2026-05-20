@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 800px at 80% -10%, rgba(99, 102, 241, 0.08), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(34, 211, 238, 0.06), transparent 60%),
+    #0d1018;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(155, 165, 195, 0.18);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(155, 165, 195, 0.3);
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-ink-700/60 bg-ink-800/60 backdrop-blur;
+  }
+  .input {
+    @apply w-full rounded-lg border border-ink-600 bg-ink-900/70 px-3 py-2 text-sm text-ink-100
+           placeholder:text-ink-400 focus:border-accent-500 focus:outline-none focus:ring-2
+           focus:ring-accent-500/30 transition;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium
+           transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-accent-600 text-white hover:bg-accent-500 shadow-glow;
+  }
+  .btn-ghost {
+    @apply btn bg-ink-700/40 text-ink-100 hover:bg-ink-700;
+  }
+  .btn-danger {
+    @apply btn bg-red-600/80 text-white hover:bg-red-500;
+  }
+  .label {
+    @apply text-xs font-semibold uppercase tracking-wider text-ink-300;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full border border-ink-600 bg-ink-900/60 px-2 py-0.5
+           text-xs text-ink-200;
+  }
+  .pill-accent {
+    @apply pill border-accent-500/40 bg-accent-500/10 text-accent-200;
+  }
+  .pill-warn {
+    @apply pill border-amber-500/40 bg-amber-500/10 text-amber-200;
+  }
+  .pill-good {
+    @apply pill border-emerald-500/40 bg-emerald-500/10 text-emerald-200;
+  }
+}
+
+.prose-cc {
+  @apply text-ink-100 leading-relaxed;
+}
+.prose-cc h1,
+.prose-cc h2,
+.prose-cc h3,
+.prose-cc h4 {
+  @apply font-semibold text-white mt-6 mb-2;
+}
+.prose-cc h1 {
+  @apply text-2xl;
+}
+.prose-cc h2 {
+  @apply text-xl;
+}
+.prose-cc h3 {
+  @apply text-lg text-accent-200;
+}
+.prose-cc h4 {
+  @apply text-base text-ink-200;
+}
+.prose-cc p {
+  @apply my-3;
+}
+.prose-cc ul,
+.prose-cc ol {
+  @apply my-3 ml-6 list-disc space-y-1;
+}
+.prose-cc ol {
+  @apply list-decimal;
+}
+.prose-cc li::marker {
+  color: rgba(99, 102, 241, 0.7);
+}
+.prose-cc strong {
+  @apply text-white;
+}
+.prose-cc code {
+  @apply rounded bg-ink-900/80 px-1.5 py-0.5 text-[0.85em] text-accent-200 font-mono;
+}
+.prose-cc pre {
+  @apply my-4 overflow-x-auto rounded-lg border border-ink-700 bg-ink-900/80 p-4 text-sm;
+}
+.prose-cc pre code {
+  @apply bg-transparent text-ink-100 p-0;
+}
+.prose-cc blockquote {
+  @apply my-4 border-l-2 border-accent-500/60 pl-4 italic text-ink-200;
+}
+.prose-cc hr {
+  @apply my-6 border-ink-700;
+}
+.prose-cc a {
+  @apply text-accent-200 underline decoration-accent-500/40 underline-offset-2 hover:text-accent-50;
+}
+
+.log-stream {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.log-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -7,3 +7,10 @@ build/
 state/*.json
 .env
 .claude-costs
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Per-project storage (locally tracked repos)
+projects/

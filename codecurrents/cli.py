@@ -6,14 +6,20 @@ import os
 import sys
 from pathlib import Path
 
-from .config import CodeCurrentsConfig, DEFAULT_IGNORE_PATTERNS, DEFAULT_MAP_PROMPT, DEFAULT_REDUCE_PROMPT
+from .config import (
+    CodeCurrentsConfig,
+    DEFAULT_IGNORE_PATTERNS,
+    DEFAULT_MAP_PROMPT,
+    DEFAULT_REDUCE_PROMPT,
+    DEFAULT_TOKENS_PER_CHUNK,
+    DEFAULT_MAX_CONCURRENT_REQUESTS,
+)
 from .core import summarize_repo
 
 
 def _load_env_file() -> None:
-    """Load environment variables from ~/.eve (and ~/.env as fallback)."""
-    for name in [".eve", ".env"]:
-        env_path = Path.home() / name
+    """Load environment variables from .env in the current working directory."""
+    for env_path in [Path(".env"), Path.home() / ".eve", Path.home() / ".env"]:
         if not env_path.exists():
             continue
         for line in env_path.read_text().splitlines():
@@ -37,17 +43,27 @@ def main() -> None:
         description="Summarize code changes from a Git repo using LLM map-reduce.",
     )
     parser.add_argument("--repo", required=True, help="Git repo URL or local path")
-    parser.add_argument("--branches", nargs="+", default=["main"], help="Branches to track (default: main)")
+    parser.add_argument("--branches", nargs="+", default=["main"], help="Branches to track (default: main). When exactly one branch is given, the clone/fetch is restricted to that ref.")
     parser.add_argument("--since", default=None, help="Time-based filter, e.g. '9 days ago', '2026-03-01' (passed to git --since)")
     parser.add_argument("--start-commit", default=None, help="Start commit hash (default: read from state)")
     parser.add_argument("--end-commit", default="HEAD", help="End commit hash (default: HEAD)")
-    parser.add_argument("--model", default="claude-haiku-4-5-20251001", help="LLM model (claude-*, gpt-*, gemini-*)")
+    parser.add_argument("--model", default="anthropic/claude-haiku-4-5", help="LLM model (provider/model for OpenRouter, or claude-*, gpt-*, gemini-* for direct backends)")
     parser.add_argument("--map-prompt", default=None, help="Custom map prompt (or path to .txt file)")
     parser.add_argument("--reduce-prompt", default=None, help="Custom reduce prompt (or path to .txt file)")
     parser.add_argument("--config", default=None, help="Path to JSON config file")
     parser.add_argument("--ignore", nargs="+", default=None, help="Additional file patterns to ignore")
-    parser.add_argument("--tokens-per-chunk", type=int, default=50_000, help="Target tokens per chunk")
+    parser.add_argument("--tokens-per-chunk", type=int, default=DEFAULT_TOKENS_PER_CHUNK, help="Target tokens per chunk")
     parser.add_argument("--max-commits", type=int, default=500, help="Max commits to process")
+    parser.add_argument(
+        "--max-concurrent",
+        type=int,
+        default=DEFAULT_MAX_CONCURRENT_REQUESTS,
+        help=(
+            "Max concurrent LLM requests during the map fan-out. "
+            "Higher = faster but more likely to hit provider rate limits. "
+            "Default: %(default)s. Also configurable as max_concurrent_requests in config.json."
+        ),
+    )
     parser.add_argument("--state-dir", default="./state", help="Directory for state files")
     parser.add_argument("--clone-dir", default="/tmp/codecurrents_repos", help="Directory for cloned repos")
     parser.add_argument("--summaries-dir", default="./summaries", help="Directory for saved LLM summary logs")
@@ -55,13 +71,14 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Load config file if provided
+    # Load config file — explicit path or auto-discover config.json in cwd
     file_config = {}
-    if args.config:
-        config_path = Path(args.config)
-        if not config_path.exists():
-            print(f"Error: config file not found: {args.config}", file=sys.stderr)
-            sys.exit(1)
+    config_path = Path(args.config) if args.config else Path("config.json")
+    if args.config and not config_path.exists():
+        print(f"Error: config file not found: {args.config}", file=sys.stderr)
+        sys.exit(1)
+    if config_path.exists():
+        print(f"Loading config: {config_path}", file=sys.stderr)
         file_config = json.loads(config_path.read_text())
 
     # Resolve prompts (can be inline text or path to a .txt file)
@@ -78,7 +95,7 @@ def main() -> None:
     config = CodeCurrentsConfig(
         repo_url=args.repo,
         branches=file_config.get("branches", args.branches),
-        since=args.since or file_config.get("since"),
+        since=_normalize_since(args.since or file_config.get("since")),
         start_commit=args.start_commit or file_config.get("start_commit"),
         end_commit=args.end_commit,
         model=file_config.get("model", args.model),
@@ -87,6 +104,7 @@ def main() -> None:
         ignore_patterns=ignore,
         tokens_per_chunk=file_config.get("tokens_per_chunk", args.tokens_per_chunk),
         max_commits=file_config.get("max_commits", args.max_commits),
+        max_concurrent_requests=file_config.get("max_concurrent_requests", args.max_concurrent),
         state_dir=file_config.get("state_dir", args.state_dir),
         clone_dir=file_config.get("clone_dir", args.clone_dir),
         summaries_dir=file_config.get("summaries_dir", args.summaries_dir),
@@ -101,6 +119,13 @@ def main() -> None:
         print("\n--- No major changes detected. ---\n")
     else:
         print("\n" + result)
+
+
+def _normalize_since(value: str | None) -> str | None:
+    """Strip and collapse internal whitespace so '7  days ago' → '7 days ago'."""
+    if value is None:
+        return None
+    return " ".join(value.split())
 
 
 def _resolve_prompt(value: str | None, default: str) -> str:

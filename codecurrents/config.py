@@ -1,5 +1,6 @@
 """Configuration and defaults for CodeCurrents."""
 
+import re
 from dataclasses import dataclass, field
 
 
@@ -41,45 +42,78 @@ DEFAULT_IGNORE_PATTERNS: list[str] = [
     "**/__snapshots__/**",
 ]
 
+NO_MAJOR_CHANGES = "NO_MAJOR_CHANGES"
+
+
+def is_no_major_changes(text: str) -> bool:
+    """Strict check for the NO_MAJOR_CHANGES sentinel.
+
+    Matches only when the model emits the sentinel on its own (optionally with
+    trailing punctuation/whitespace) — not when it's mentioned mid-prose.
+    """
+    if not text:
+        return False
+    stripped = text.strip()
+    return bool(re.fullmatch(r"NO_MAJOR_CHANGES[.\s]*", stripped))
+
+
 DEFAULT_MAP_PROMPT = """\
-You are a senior software architect analyzing code changes in a software repository.
+You are a senior software architect analyzing a batch of git commits.
 
-Given the following set of git commits and their diffs, produce a concise summary focusing on:
-- Significant architectural decisions or patterns being introduced
-- New features or capabilities being added
-- Major refactors or structural changes
-- Shifts in technology choices or dependencies
+Output **exactly** the following Markdown skeleton — keep section headers verbatim, \
+omit a section's bullets if it has nothing substantive, but do not rename or reorder sections.
 
-Do NOT focus on:
-- Individual bug fixes or minor tweaks
-- Formatting or style changes
-- Test-only changes (unless they reveal architectural intent)
+### Summary
+One or two sentences naming the dominant theme of this batch.
 
-If the changes are purely maintenance, bug fixes, or minor tweaks with no architectural significance, \
-output exactly: NO_MAJOR_CHANGES
+### New features & capabilities
+- Bullet per distinct feature/capability. Name the module/file paths.
 
-Keep your summary to 300-500 words. Be specific about what changed and why it matters architecturally.\
+### Refactors & architectural shifts
+- Bullet per refactor, abstraction, or design-pattern change. Be specific about \
+what moved, what was renamed, what was extracted.
+
+### Dependencies & infrastructure
+- Added/removed/upgraded deps, build/CI changes, deployment or runtime shifts.
+
+### Risks & follow-ups
+- Anything fragile, half-done, or worth a reviewer's attention.
+
+### Contributors
+- Names of authors / co-authors who drove notable changes in this batch (skip if unclear).
+
+Rules:
+- Ground every bullet in a specific commit, file path, or module name. No generic filler.
+- Ignore typo fixes, formatting, style-only edits, and test-only churn unless they reveal \
+architectural intent.
+- If the batch is purely maintenance, bug fixes, or trivial tweaks, output exactly: \
+NO_MAJOR_CHANGES (and nothing else).
+- Target 250–500 words total across all sections.\
 """
 
 DEFAULT_REDUCE_PROMPT = """\
-You are a senior software architect producing a high-level summary of recent development activity.
+You are a senior software architect writing a development digest for a codebase.
 
-Below are summaries of different batches of code changes from the same repository. \
-Synthesize them into a single, coherent narrative that captures:
+Below are structured per-batch summaries of recent code changes. Synthesize them \
+into a single newsletter-style narrative:
 
-1. The overall direction the codebase is heading
-2. Major new features or capabilities that emerged
-3. Significant architectural decisions or design patterns being adopted
-4. Any notable technology shifts
+1. Lead with the overall direction the codebase is heading.
+2. Group related bullets across batches — merge and deduplicate aggressively.
+3. Surface notable architectural decisions and design-pattern shifts.
+4. Call out infrastructure / dependency / tooling changes worth knowing.
+5. Mention contributors when a thread is clearly driven by specific people.
 
-Write in a clear, newsletter-style tone suitable for developers who follow this project. \
-Avoid repeating the same point from multiple summaries — merge and deduplicate.
+Style:
+- Clear, plain prose. Newsletter voice, not bullet-soup.
+- Cite specific module / file names where they sharpen the point.
+- Use the per-batch timestamp ranges (visible in the input) to give the narrative \
+a sense of time.
 
-If ALL summaries indicate NO_MAJOR_CHANGES, output exactly: NO_MAJOR_CHANGES
+If ALL batches indicate NO_MAJOR_CHANGES, output exactly: NO_MAJOR_CHANGES
 
-Otherwise, ignore any NO_MAJOR_CHANGES summaries and focus on the substantive ones.
+Otherwise, silently ignore any NO_MAJOR_CHANGES batches.
 
-Target length: 400-800 words.\
+Target length: 400–800 words.\
 """
 
 # Commit message patterns that indicate low-signal commits
@@ -100,6 +134,14 @@ MAX_DIFF_LINES_PER_FILE = 2000
 # Safety limit on total commits to process
 MAX_COMMITS_DEFAULT = 500
 
+# Target tokens per chunk for the map pass
+DEFAULT_TOKENS_PER_CHUNK = 50_000
+
+# Default cap on concurrent LLM requests during the map fan-out.
+# Tune via --max-concurrent or "max_concurrent_requests" in config.json.
+# Too high → provider rate-limit 429s + retry storms; too low → slow runs.
+DEFAULT_MAX_CONCURRENT_REQUESTS = 8
+
 
 @dataclass
 class CodeCurrentsConfig:
@@ -109,14 +151,28 @@ class CodeCurrentsConfig:
     branches: list[str] = field(default_factory=lambda: ["main"])
     start_commit: str | None = None
     end_commit: str = "HEAD"
-    model: str = "claude-haiku-4-5-20251001"
+    model: str = "anthropic/claude-haiku-4-5"
     map_prompt: str = DEFAULT_MAP_PROMPT
     reduce_prompt: str = DEFAULT_REDUCE_PROMPT
     ignore_patterns: list[str] = field(default_factory=lambda: list(DEFAULT_IGNORE_PATTERNS))
-    tokens_per_chunk: int = 40_000
+    tokens_per_chunk: int = DEFAULT_TOKENS_PER_CHUNK
     max_commits: int = MAX_COMMITS_DEFAULT
+    # Maximum number of map-pass LLM calls in flight at once. Higher values
+    # finish faster but risk hitting provider rate limits; lower values are
+    # safer on shared/free tiers. The map pass uses asyncio.Semaphore(this).
+    max_concurrent_requests: int = DEFAULT_MAX_CONCURRENT_REQUESTS
     state_dir: str = "./state"
     summaries_dir: str = "./summaries"
     clone_dir: str = "/tmp/codecurrents_repos"
+    # Partial-clone filter (e.g. "blob:none"). None = full bare clone, which
+    # is the right default for repeated analysis: bigger disk, but git log -p
+    # is purely local. Set to "blob:none" to save disk if you only ever run
+    # once.
+    clone_filter: str | None = None
     since: str | None = None  # e.g. "9 days ago", "2026-03-01", passed to git log --since
     reprocess: bool = False  # ignore saved state and reprocess all commits in range
+    # When set, summarize_repo also writes a structured run folder under
+    # projects/<project_slug>/runs/<run_id>/ in addition to the legacy log.
+    # The frontend reads from there. CLI users who don't pass --project leave it None.
+    project_slug: str | None = None
+    run_id: str | None = None

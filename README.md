@@ -39,6 +39,28 @@ pip install -e ".[openai]"
 pip install -e ".[gemini]"
 ```
 
+## GUI
+
+There's a React frontend in [`frontend/`](frontend/) that turns the CLI into a
+multi-project dashboard. Each tracked repo gets its own folder under
+`projects/<org_repo>/` with its own editable config, state, run cache, and
+visualizable history of past LLM digests.
+
+```bash
+# Terminal 1 — FastAPI backend on :8765
+codecurrents-server
+
+# Terminal 2 — Vite dev server on :5793
+cd frontend
+npm install
+npm run dev
+```
+
+Open <http://localhost:5793>, paste a GitHub URL into the sidebar, tune the
+time window and model, hit **Analyze recent changes**, and explore the rendered
+chunk-by-chunk and final summaries with hyperlinks back to each commit. See
+[`frontend/README.md`](frontend/README.md) for production / Vercel deployment.
+
 ## API Keys
 
 Set the key for whichever LLM provider you want to use:
